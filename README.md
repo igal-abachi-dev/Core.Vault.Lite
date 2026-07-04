@@ -57,6 +57,7 @@ Core.Vault.Lite C# API
   ↓
 Simulation-first confirmed execution + immutable audit
 
+```bash
 finance-agent-platform/
 ├── apps/
 │   ├── agent-service/       # Vercel AI SDK + Gemini swarm-like agent
@@ -66,7 +67,7 @@ finance-agent-platform/
 │   ├── agent-policy/        # risk classification + safety policy
 │   └── banking-tools/       # Vercel AI SDK tool wrappers
 └── docs/
-
+```
 swarm agents: for example
 triage
 
@@ -82,6 +83,7 @@ investment_education_analyst
 
 confirmation_specialist
 
+```json
 export function createHandoffTools() {
   return {
     transfer_to_daily_money_copilot: handoffTool('daily_money_copilot', 'Use for budgeting, spending, balances, overdraft, cashflow, and everyday money management.'),
@@ -104,6 +106,7 @@ export function createHandoffTools() {
     transfer_to_confirmation_specialist: handoffTool('confirmation_specialist', 'Use only when the user explicitly provides a simulationId and confirmationToken and asks to execute/confirm.'),
   };
 }
+```
 --
 
 The gateway exposes the safe tool split:
