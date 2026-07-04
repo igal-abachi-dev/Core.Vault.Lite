@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="..\VaultCoreLite.Application\VaultCoreLite.Application.csproj" />
+    <ProjectReference Include="..\VaultCoreLite.Infrastructure\VaultCoreLite.Infrastructure.csproj" />
+    <ProjectReference Include="..\VaultCoreLite.ProductRuntime.Plugin\VaultCoreLite.ProductRuntime.Plugin.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+</Project>

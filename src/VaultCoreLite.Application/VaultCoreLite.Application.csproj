@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\VaultCoreLite.Domain\VaultCoreLite.Domain.csproj" />
+    <ProjectReference Include="..\VaultCoreLite.Contracts\VaultCoreLite.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Cronos" />
+  </ItemGroup>
+</Project>
