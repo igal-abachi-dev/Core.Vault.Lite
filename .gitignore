@@ -23,6 +23,20 @@ bld/
 [Ll]og/
 [Ll]ogs/
 
+**/bin/
+**/obj/
+.vs/
+.idea/
+*.user
+.env
+plugins/**/*.dll
+!plugins/SavingsProduct.Plugin/*.cs
+!plugins/SavingsProduct.Plugin/*.csproj
+
+!plugins/BankProducts.Plugin/*.cs
+!plugins/BankProducts.Plugin/*.csproj
+
+
 # .NET Core
 project.lock.json
 project.fragment.lock.json
