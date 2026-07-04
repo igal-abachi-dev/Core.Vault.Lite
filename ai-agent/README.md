@@ -34,7 +34,7 @@ Immutable ledger + product plugins + simulation confirmation audit
 - Restored the useful specialist finance agents instead of keeping a small conservative set.
 - Added advanced deterministic tools for portfolio risk, investment plan simulation, retirement runway, tax scenarios, mortgage refinance, subscription bills, emergency fund gap, credit utilization, FX/cash management support hooks.
 - Removed hard-coded “US-specific” routing. This repo is configured for Israel-oriented deployments (`IL`, `ILS/USD/EUR`) and uses deployment policy to enable/disable advanced finance modules.
-- Still keeps the critical money safety invariant: raw execution is blocked; only `confirm_simulation` can execute a stored VaultCoreLite simulation.
+- Still keeps the critical money safety invariant: raw execution is blocked; only `human confirmation endpoint` can execute a stored VaultCoreLite simulation.
 
 ## Quick start
 
@@ -88,7 +88,7 @@ Simulation tools:
 
 Execution tool:
 
-- `confirm_simulation` — the only execution-capable gateway tool.
+- `human confirmation endpoint` — the only execution-capable path; no confirmation token is exposed to the model.
 
 Direct tools such as `execute_transfer`, `buy_security`, or `rebalance_portfolio` are intentionally blocked and return `REQUIRES_CONFIRMATION`.
 

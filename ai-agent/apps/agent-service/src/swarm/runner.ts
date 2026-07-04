@@ -4,7 +4,7 @@ import type { HandoffAgentId } from '@finance-agent/schemas';
 import { agents } from './agents.js';
 import { createHandoffTools } from '../tools/handoff-tools.js';
 import { modelRoleForAgent, type RoleModels } from '../lib/ai/models.js';
-import type { FinanceAgentNode, SwarmRunInput, SwarmRunResult, SwarmState } from './types.js';
+import type { FinanceAgentNode, PendingHumanConfirmation, SwarmRunInput, SwarmRunResult, SwarmState } from './types.js';
 
 export interface SwarmRunnerOptions { models: RoleModels; gateway: ToolGatewayClient; maxHandoffs: number; maxModelSteps: number; }
 
@@ -53,7 +53,7 @@ export async function runFinanceSwarm(input: SwarmRunInput, options: SwarmRunner
     messages.push({ role: 'user', content: `[System routing note] Switched to ${nextAgent}. Typed context only: ${JSON.stringify(state.contextData)}. Continue without repeating prior routing.` });
   }
 
-  return { text: lastText, activeAgent: state.currentAgent, trace: state.trace, toolResults: allToolResults };
+  return { text: lastText, activeAgent: state.currentAgent, trace: state.trace, toolResults: allToolResults, pendingConfirmations: extractPendingConfirmations(allToolResults) };
 }
 
 function makeToolsForAgent(active: FinanceAgentNode, gateway: ToolGatewayClient, auth: ReturnType<typeof authForAgent>) {
@@ -61,7 +61,7 @@ function makeToolsForAgent(active: FinanceAgentNode, gateway: ToolGatewayClient,
   const handoffs = active.canHandoff ? createHandoffTools() : {};
   switch (active.toolGroup) {
     case 'read': return { get_financial_health_snapshot: banking.get_financial_health_snapshot, get_account_balance: banking.get_account_balance, get_recent_transactions: banking.get_recent_transactions, ...handoffs };
-    case 'confirmation': return { confirm_simulation: banking.confirm_simulation };
+    case 'confirmation': return {}; // Structural HITL: no model-visible execution tool. UI calls /v1/human-confirmations/{simulationId}/confirm directly.
     case 'wealth': return { get_financial_health_snapshot: banking.get_financial_health_snapshot, simulate_savings_plan: banking.simulate_savings_plan, simulate_loan_payoff: banking.simulate_loan_payoff, simulate_investment_plan: banking.simulate_investment_plan, simulate_retirement_runway: banking.simulate_retirement_runway, ...handoffs };
     case 'investment': return { simulate_investment_plan: banking.simulate_investment_plan, analyze_portfolio_risk: banking.analyze_portfolio_risk, simulate_retirement_runway: banking.simulate_retirement_runway, ...handoffs };
     case 'risk': return { analyze_portfolio_risk: banking.analyze_portfolio_risk, simulate_cashflow_forecast: banking.simulate_cashflow_forecast, simulate_investment_plan: banking.simulate_investment_plan, ...handoffs };
@@ -78,4 +78,16 @@ function extractToolResults(result: any): unknown[] {
   if (Array.isArray(result.toolResults)) return result.toolResults.map((x: any) => x.result ?? x.output ?? x);
   if (Array.isArray(result.steps)) return result.steps.flatMap((step: any) => (step.toolResults ?? []).map((x: any) => x.result ?? x.output ?? x));
   return [];
+}
+
+function extractPendingConfirmations(toolResults: unknown[]): PendingHumanConfirmation[] {
+  const out: PendingHumanConfirmation[] = [];
+  for (const item of toolResults) {
+    const data = item && typeof item === 'object' ? (item as any).data : undefined;
+    const hc = data && typeof data === 'object' ? data.humanConfirmation : undefined;
+    if (hc && typeof hc.simulationId === 'string' && typeof hc.path === 'string') {
+      out.push({ simulationId: hc.simulationId, path: hc.path, summary: typeof (item as any).summary === 'string' ? (item as any).summary : undefined, expiresAt: typeof data.expiresAt === 'string' ? data.expiresAt : undefined });
+    }
+  }
+  return out;
 }

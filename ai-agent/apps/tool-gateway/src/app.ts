@@ -13,6 +13,8 @@ import {
 } from 'fastify-type-provider-zod';
 import type { GatewayEnv } from './config/env.js';
 import { VaultCoreClient } from './core/vault-core-client.js';
+import { InMemoryConfirmationTokenStore } from './confirmation/confirmation-token-store.js';
+import { registerHumanConfirmationRoutes } from './routes/human-confirmation-routes.js';
 import { registerToolRoutes } from './routes/tool-routes.js';
 
 export function buildApp(env: GatewayEnv) {
@@ -41,16 +43,25 @@ export function buildApp(env: GatewayEnv) {
   app.get('/healthz', async () => ({ status: 'ok', service: 'tool-gateway' }));
 
   const core = new VaultCoreClient({ baseUrl: env.BANK_CORE_BASE_URL, token: env.BANK_CORE_TOKEN, mockMode: env.BANK_CORE_MOCK_MODE });
+  const confirmationTokens = new InMemoryConfirmationTokenStore();
+  const policy = {
+    supportedCountry: env.SUPPORTED_COUNTRY,
+    supportedCurrencies: env.supportedCurrencies,
+    defaultDailyExecutionLimit: env.DEFAULT_DAILY_EXECUTION_LIMIT,
+    requireConfirmationForExecution: env.REQUIRE_CONFIRMATION_FOR_EXECUTION,
+    enableAdvancedFinanceTools: env.ENABLE_ADVANCED_FINANCE_TOOLS,
+  } as const;
   app.register(registerToolRoutes, {
     prefix: '/v1/tools',
     core,
-    policy: {
-      supportedCountry: env.SUPPORTED_COUNTRY,
-      supportedCurrencies: env.supportedCurrencies,
-      defaultDailyExecutionLimit: env.DEFAULT_DAILY_EXECUTION_LIMIT,
-      requireConfirmationForExecution: env.REQUIRE_CONFIRMATION_FOR_EXECUTION,
-      enableAdvancedFinanceTools: env.ENABLE_ADVANCED_FINANCE_TOOLS,
-    },
+    policy,
+    confirmationTokens,
+  });
+  app.register(registerHumanConfirmationRoutes, {
+    prefix: '/v1/human-confirmations',
+    core,
+    policy,
+    confirmationTokens,
   });
 
   app.setErrorHandler((error: FastifyError, request, reply) => {

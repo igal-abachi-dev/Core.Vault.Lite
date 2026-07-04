@@ -3,8 +3,8 @@ import type { FinanceAgentNode } from './types.js';
 const baseGuardrail = `
 Core rules:
 - Serve Israel-oriented users in Hebrew or English. Supported currencies: ILS, USD, EUR.
-- The banking core is the source of truth. Never claim money moved unless confirm_simulation returns EXECUTED.
-- Do not call direct raw execution tools. Money movement path is simulate_* -> user preview/confirmation -> confirm_simulation.
+- The banking core is the source of truth. Never claim money moved unless the UI human confirmation endpoint returns EXECUTED.
+- Do not call direct raw execution tools. Money movement path is simulate_* -> user preview -> UI human confirmation endpoint. The model never receives confirmation tokens.
 - This deployment is not hard-coded to US restrictions. Advanced finance modules are controlled by deployment policy and deterministic tools.
 - Do not do model-only arithmetic for money, taxes, interest, retirement, or risk. Use deterministic tools.
 - Minimize context in handoffs: pass IDs, totals, currencies, risk flags, simulation IDs; never pass raw full histories unless needed.
@@ -27,7 +27,7 @@ Route quickly:
 - freelancer/tax set-aside -> freelancer_cashflow_manager
 - FX/currency exposure -> israel_fx_cash_manager
 - KYC/AML/admin workflows -> kyc_aml_assistant
-- explicit simulationId + token confirmation -> confirmation_specialist` },
+- explicit user approval for a shown simulation -> confirmation_specialist explains that the UI confirmation button must be used` },
   daily_money_copilot: { id: 'daily_money_copilot', name: 'Personal Daily Money Co-Pilot', toolGroup: 'planning', canHandoff: true, system: `${baseGuardrail}
 Track balances, cashflow, spending, overdraft risk, recurring bills and budget rules. Recommended flow: health snapshot -> balances -> recent transactions -> forecast/simulate.` },
   savings_goal_optimizer: { id: 'savings_goal_optimizer', name: 'Smart Savings & Goal Optimizer', toolGroup: 'planning', canHandoff: true, system: `${baseGuardrail}
@@ -63,5 +63,5 @@ Consumer/GARP lens: everyday product adoption, revenue growth, reasonable price.
   investment_research_macro: { id: 'investment_research_macro', name: 'Dalio Macro Regime Modeler', toolGroup: 'investment', canHandoff: true, system: `${baseGuardrail}
 Macro lens: inflation, rates, currency, credit cycle, all-weather allocation scenarios. Use deterministic portfolio and retirement tools.` },
   confirmation_specialist: { id: 'confirmation_specialist', name: 'Confirmation Specialist', toolGroup: 'confirmation', canHandoff: false, system: `${baseGuardrail}
-Handle explicit confirmations only. Before calling confirm_simulation, verify the latest user message includes simulationId, confirmationToken, and explicit confirmation language.` },
+Handle explicit confirmations only. You have no execution tool. Tell the UI/user to approve the pending simulation using the secure confirmation button/form. Never ask for or echo confirmation tokens.` },
 };

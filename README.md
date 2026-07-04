@@ -226,3 +226,18 @@ v1.2 adds simulation-first, confirmation-gated money execution for AI agent use 
 The LLM/agent should call simulation tools first. The core returns a preview plus one-time confirmation token. Execution reuses the stored request and the posting engine's idempotency key, then records confirmation audit and outbox events.
 
 See `docs/V1_2_AGENT_SAFE_EXECUTION.md`.
+
+## v1.3 safety hardening note
+
+This bundle includes the confirmation hardening pass from the senior review:
+
+- `MoneySimulation` confirmation now uses a `FOR UPDATE` row lock.
+- `Confirmed` simulations are reconciled after crash/retry: if the batch exists, the simulation is marked `Executed`; if it does not, the stored `BatchRequest` is safely replayed through the idempotent posting engine.
+- The AI agent no longer receives or handles confirmation tokens.
+- The Tool Gateway captures confirmation tokens out-of-band and exposes a UI-only endpoint: `POST /v1/human-confirmations/{simulationId}/confirm`.
+- The agent service returns `pendingConfirmations[]` metadata so a UI can render a confirmation button without leaking a token into model context.
+
+See:
+
+- `docs/V1_3_CONFIRMATION_HARDENING.md`
+- `ai-agent/docs/HUMAN_CONFIRMATION_FLOW.md`

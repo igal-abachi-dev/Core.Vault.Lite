@@ -1,10 +1,9 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { makeIdempotencyKey, redactForAgent } from '@finance-agent/agent-policy';
+import { redactForAgent } from '@finance-agent/agent-policy';
 import {
   AnalyzePortfolioRiskInputSchema,
   AnalyzeSubscriptionBillsInputSchema,
-  ConfirmSimulationInputSchema,
   CurrencySchema,
   FinancialHealthSnapshotInputSchema,
   GetAccountBalanceInputSchema,
@@ -44,7 +43,6 @@ export function createBankingTools(ctx: BankingToolContext) {
     analyze_subscription_bills: tool({ description: 'Read-only: detect recurring bills and possible subscription savings from account history.', parameters: AnalyzeSubscriptionBillsInputSchema.omit({ auth: true, requestId: true }), execute: async (args) => safe(() => ctx.gateway.analyzeSubscriptionBills(withAuth(AnalyzeSubscriptionBillsInputSchema, ctx.auth, args))) }),
     simulate_mortgage_refinance: tool({ description: 'Simulation-only: compare current mortgage rate to refinance scenario.', parameters: SimulateMortgageRefinanceInputSchema.omit({ auth: true, requestId: true }), execute: async (args) => safe(() => ctx.gateway.simulateMortgageRefinance(withAuth(SimulateMortgageRefinanceInputSchema, ctx.auth, args))) }),
     simulate_credit_utilization_strategy: tool({ description: 'Simulation-only: show credit utilization before/after a payment strategy.', parameters: SimulateCreditUtilizationInputSchema.omit({ auth: true, requestId: true }), execute: async (args) => safe(() => ctx.gateway.simulateCreditUtilization(withAuth(SimulateCreditUtilizationInputSchema, ctx.auth, args))) }),
-    confirm_simulation: tool({ description: 'Execution: confirm a prior core simulation using the user-provided confirmation token. This is the only execution tool.', parameters: ConfirmSimulationInputSchema.omit({ auth: true, requestId: true }).extend({ confirmationText: z.string().min(1).max(500).describe('The exact user confirmation text from the latest user message.') }), execute: async (args) => safe(() => ctx.gateway.confirmSimulation(withAuth(ConfirmSimulationInputSchema, ctx.auth, { ...args, idempotencyKey: args.idempotencyKey ?? makeIdempotencyKey('confirm', ctx.auth.userId) }))) }),
   };
 }
 export type BankingTools = ReturnType<typeof createBankingTools>;

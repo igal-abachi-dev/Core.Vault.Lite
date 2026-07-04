@@ -17,5 +17,6 @@ export interface SwarmState {
 }
 
 export interface SwarmRunInput { message: string; messages?: CoreMessage[]; userId: string; customerId: string; language: 'he' | 'en'; accountIds: string[]; }
-export interface SwarmRunResult { text: string; activeAgent: HandoffAgentId; trace: SwarmState['trace']; toolResults: unknown[]; }
+export interface PendingHumanConfirmation { simulationId: string; path: string; summary?: string; expiresAt?: string; }
+export interface SwarmRunResult { text: string; activeAgent: HandoffAgentId; trace: SwarmState['trace']; toolResults: unknown[]; pendingConfirmations: PendingHumanConfirmation[]; }
 export type AgentTools = ToolSet;

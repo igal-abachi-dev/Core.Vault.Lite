@@ -29,6 +29,6 @@ export function createHandoffTools() {
     transfer_to_buffett_gatekeeper: handoffTool('investment_research_buffett', 'Use for intrinsic value, moat, owner earnings and margin-of-safety research.'),
     transfer_to_lynch_scout: handoffTool('investment_research_lynch', 'Use for consumer trend, GARP and everyday product adoption investment research.'),
     transfer_to_macro_modeler: handoffTool('investment_research_macro', 'Use for macro regime, inflation/rates/currency and all-weather allocation scenario analysis.'),
-    transfer_to_confirmation_specialist: handoffTool('confirmation_specialist', 'Use only when the user explicitly provides a simulationId and confirmationToken and asks to execute/confirm.'),
+    transfer_to_confirmation_specialist: handoffTool('confirmation_specialist', 'Use only when the user wants to approve a pending simulation. The model has no execution tool; the UI must call the human confirmation endpoint.'),
   };
 }

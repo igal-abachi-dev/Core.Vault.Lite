@@ -192,6 +192,15 @@ public sealed class SimulationRepository : ISimulationRepository
         var query = tracking ? _db.MoneySimulations : _db.MoneySimulations.AsNoTracking();
         return query.FirstOrDefaultAsync(x => x.Id == id, ct);
     }
+
+    public Task<MoneySimulation?> GetForUpdateAsync(Guid id, CancellationToken ct) => _db.MoneySimulations
+        .FromSqlInterpolated($"""
+SELECT * FROM money_simulations
+WHERE id = {id}
+FOR UPDATE
+""")
+        .FirstOrDefaultAsync(ct);
+
     public async Task AddConfirmationAuditAsync(SimulationConfirmationAudit audit, CancellationToken ct) => await _db.SimulationConfirmationAudits.AddAsync(audit, ct);
 }
 

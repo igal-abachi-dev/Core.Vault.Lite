@@ -2,7 +2,6 @@ import type {
   AnalyzePortfolioRiskInput,
   AnalyzeSubscriptionBillsInput,
   AuthContext,
-  ConfirmSimulationInput,
   FinancialHealthSnapshotInput,
   GetAccountBalanceInput,
   GetRecentTransactionsInput,
@@ -42,17 +41,27 @@ export class ToolGatewayClient {
   analyzeSubscriptionBills(input: AnalyzeSubscriptionBillsInput) { return this.post('/v1/tools/analyze_subscription_bills', input); }
   simulateMortgageRefinance(input: SimulateMortgageRefinanceInput) { return this.post('/v1/tools/simulate_mortgage_refinance', input); }
   simulateCreditUtilization(input: SimulateCreditUtilizationInput) { return this.post('/v1/tools/simulate_credit_utilization_strategy', input); }
-  confirmSimulation(input: ConfirmSimulationInput) { return this.post('/v1/tools/confirm_simulation', input); }
 
   private async post(path: string, body: unknown): Promise<ToolResult> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
-      const response = await fetch(`${this.baseUrl}${path}`, { method: 'POST', headers: { authorization: `Bearer ${this.token}`, 'content-type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal });
+      const response = await fetch(`${this.baseUrl}${path}`, { method: 'POST', headers: { ...this.authHeaders(body), 'content-type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal });
       const json = await response.json().catch(() => undefined);
       if (!response.ok) throw new ToolGatewayError(`Tool gateway returned HTTP ${response.status}`, response.status, json);
       return json as ToolResult;
     } finally { clearTimeout(timer); }
+  }
+
+  private authHeaders(body: unknown): Record<string, string> {
+    const auth = body && typeof body === 'object' ? (body as { auth?: AuthContext }).auth : undefined;
+    return {
+      authorization: `Bearer ${this.token}`,
+      ...(auth?.userId ? { 'x-user-id': auth.userId } : {}),
+      ...(auth?.customerId ? { 'x-customer-id': auth.customerId } : {}),
+      ...(auth?.language ? { 'x-language': auth.language } : {}),
+      ...(auth?.allowedAccountIds?.length ? { 'x-allowed-account-ids': auth.allowedAccountIds.join(',') } : {}),
+    };
   }
 }
 

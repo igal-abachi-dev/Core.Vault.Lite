@@ -68,7 +68,7 @@ export function evaluatePolicy(input: {
     if (amount !== undefined && amount > input.config.defaultDailyExecutionLimit) {
       return { allowed: false, risk, reason: `Amount exceeds configured execution limit ${input.config.defaultDailyExecutionLimit}`, requiresConfirmation: true, warnings };
     }
-    warnings.push('Execution requires a prior core simulation, user confirmation token, idempotency key, and audit metadata.');
+    warnings.push('Execution requires a prior core simulation, out-of-band human confirmation, idempotency key, and audit metadata.');
   }
 
   return { allowed: true, risk, requiresConfirmation: risk === 'execute' && input.config.requireConfirmationForExecution, warnings };

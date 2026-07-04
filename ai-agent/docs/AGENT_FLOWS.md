@@ -38,10 +38,10 @@ triage -> personal_wealth_advisor
 
 ```text
 agent proposes action
-  -> simulation tool returns simulationId + confirmationToken
+  -> simulation tool returns simulationId + redacted humanConfirmation metadata; the token is stored out-of-band in the gateway
   -> user explicitly confirms
   -> triage routes to confirmation_specialist
-  -> confirm_simulation
+  -> human confirmation endpoint
   -> VaultCoreLite executes stored simulation request
 ```
 

@@ -48,6 +48,7 @@ public interface ISimulationRepository
 {
     Task AddAsync(MoneySimulation simulation, CancellationToken ct);
     Task<MoneySimulation?> GetAsync(Guid id, bool tracking, CancellationToken ct);
+    Task<MoneySimulation?> GetForUpdateAsync(Guid id, CancellationToken ct);
     Task AddConfirmationAuditAsync(SimulationConfirmationAudit audit, CancellationToken ct);
 }
 

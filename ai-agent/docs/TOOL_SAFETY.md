@@ -8,7 +8,7 @@ The agent service never calls VaultCoreLite directly. It calls the Agent Tool Ga
 |---|---|---|
 | read | `get_*`, `analyze_*` | No |
 | simulate | `simulate_*` | No mutation; returns preview |
-| execute | `confirm_simulation` | Requires token + idempotency key |
+| execute | `human confirmation endpoint` | Requires token + idempotency key |
 
 ## Execution rule
 
@@ -27,7 +27,7 @@ Raw execution tools are blocked:
 The only execution path is:
 
 ```text
-simulate_* -> user sees preview -> user confirms -> confirm_simulation -> VaultCoreLite executes stored request
+simulate_* -> user sees preview -> user confirms -> human confirmation endpoint -> VaultCoreLite executes stored request
 ```
 
 This prevents the LLM from simulating one action and executing another.

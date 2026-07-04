@@ -85,7 +85,11 @@ public sealed class SimulationService
     {
         var prepared = await _uow.ExecuteInTransactionAsync(async token =>
         {
-            var simulation = await _simulations.GetAsync(simulationId, tracking: true, token) ?? throw new KeyNotFoundException("Simulation not found.");
+            // Structural confirmation gate: this SELECT ... FOR UPDATE makes the
+            // simulation confirmation single-winner under ReadCommitted. A second
+            // concurrent confirmation waits, then sees Confirmed/Executed and is
+            // reconciled through the idempotent batch path instead of racing the gate.
+            var simulation = await _simulations.GetForUpdateAsync(simulationId, token) ?? throw new KeyNotFoundException("Simulation not found.");
             var actor = string.IsNullOrWhiteSpace(request.ConfirmedBy) ? "unknown" : request.ConfirmedBy.Trim();
 
             if (simulation.Status == SimulationStatus.Executed && simulation.ExecutedBatchId is Guid alreadyExecuted)
@@ -93,7 +97,28 @@ public sealed class SimulationService
                 await _simulations.AddConfirmationAuditAsync(new SimulationConfirmationAudit(EntityId.New(), simulation.Id, ConfirmationStatus.Replay, actor, "Simulation already executed."), token);
                 await _uow.SaveChangesAsync(token);
                 var existing = await _ledger.FindBatchAsync(simulation.ClientId, simulation.ClientBatchId, token) ?? new BatchResult(alreadyExecuted, simulation.ClientId, simulation.ClientBatchId, BatchStatus.Accepted, null, null, true);
-                return ConfirmPrepared.Replayed(simulation.Id, simulation.Status, existing with { Replayed = true });
+                return ConfirmPrepared.Replayed(simulation.Id, SimulationStatus.Executed, existing with { Replayed = true });
+            }
+
+            if (simulation.Status == SimulationStatus.Confirmed)
+            {
+                var validated = await ValidateConfirmedSimulationAsync(simulation, request, actor, token);
+                if (validated.Error is not null) return validated.Error;
+
+                var existing = await _ledger.FindBatchAsync(simulation.ClientId, simulation.ClientBatchId, token);
+                if (existing is not null)
+                {
+                    simulation.MarkExecuted(existing.Id);
+                    await _simulations.AddConfirmationAuditAsync(new SimulationConfirmationAudit(EntityId.New(), simulation.Id, ConfirmationStatus.Replay, actor, "Recovered confirmed simulation: batch already existed."), token);
+                    await _outbox.AppendAsync("money.simulation_reconciliations.v1", simulation.Id.ToString(), new { simulation.Id, BatchId = existing.Id, Status = "EXECUTED_FROM_EXISTING_BATCH" }, token);
+                    await _uow.SaveChangesAsync(token);
+                    return ConfirmPrepared.Replayed(simulation.Id, SimulationStatus.Executed, existing with { Replayed = true });
+                }
+
+                await _simulations.AddConfirmationAuditAsync(new SimulationConfirmationAudit(EntityId.New(), simulation.Id, ConfirmationStatus.Replay, actor, "Recovered confirmed simulation: batch missing, safe to re-run stored request."), token);
+                await _outbox.AppendAsync("money.simulation_reconciliations.v1", simulation.Id.ToString(), new { simulation.Id, simulation.ClientId, simulation.ClientBatchId, Status = "READY_TO_REPLAY_STORED_REQUEST" }, token);
+                await _uow.SaveChangesAsync(token);
+                return ConfirmPrepared.Ready(simulation.Id, SimulationStatus.Confirmed, validated.Batch!);
             }
 
             if (simulation.Status != SimulationStatus.PendingConfirmation)
@@ -113,29 +138,14 @@ public sealed class SimulationService
                 return ConfirmPrepared.Failed(simulation.Id, simulation.Status, "Simulation confirmation window expired.");
             }
 
-            if (!ConstantTimeEquals(simulation.ConfirmationTokenHash, HashToken(simulation.Id, request.ConfirmationToken)))
-            {
-                await _simulations.AddConfirmationAuditAsync(new SimulationConfirmationAudit(EntityId.New(), simulation.Id, ConfirmationStatus.Failed, actor, "Invalid confirmation token."), token);
-                await _outbox.AppendAsync("money.simulation_confirmations.v1", simulation.Id.ToString(), new { simulation.Id, Status = "FAILED", Reason = "invalid_token" }, token);
-                await _uow.SaveChangesAsync(token);
-                return ConfirmPrepared.UnauthorizedFailure(simulation.Id, simulation.Status, "Invalid confirmation token.");
-            }
-
-            var batch = JsonSerializer.Deserialize<BatchRequest>(simulation.RequestJson, JsonOptions) ?? throw new InvalidOperationException("Stored simulation request is invalid.");
-            var currentHash = HashJson(JsonSerializer.Serialize(batch, JsonOptions));
-            if (!ConstantTimeEquals(simulation.RequestHash, currentHash))
-            {
-                await _simulations.AddConfirmationAuditAsync(new SimulationConfirmationAudit(EntityId.New(), simulation.Id, ConfirmationStatus.Failed, actor, "Request hash mismatch."), token);
-                await _outbox.AppendAsync("money.simulation_confirmations.v1", simulation.Id.ToString(), new { simulation.Id, Status = "FAILED", Reason = "request_hash_mismatch" }, token);
-                await _uow.SaveChangesAsync(token);
-                return ConfirmPrepared.Failed(simulation.Id, simulation.Status, "Simulation request integrity check failed.");
-            }
+            var validation = await ValidateConfirmedSimulationAsync(simulation, request, actor, token);
+            if (validation.Error is not null) return validation.Error;
 
             simulation.Confirm();
             await _simulations.AddConfirmationAuditAsync(new SimulationConfirmationAudit(EntityId.New(), simulation.Id, ConfirmationStatus.Accepted, actor, "Confirmed by user."), token);
             await _outbox.AppendAsync("money.simulation_confirmations.v1", simulation.Id.ToString(), new { simulation.Id, simulation.Status, ConfirmedBy = actor }, token);
             await _uow.SaveChangesAsync(token);
-            return ConfirmPrepared.Ready(simulation.Id, simulation.Status, batch);
+            return ConfirmPrepared.Ready(simulation.Id, simulation.Status, validation.Batch!);
         }, IsolationLevel.ReadCommitted, ct);
 
         if (prepared.ErrorMessage is not null)
@@ -151,7 +161,7 @@ public sealed class SimulationService
 
         await _uow.ExecuteInTransactionAsync(async token =>
         {
-            var simulation = await _simulations.GetAsync(simulationId, tracking: true, token) ?? throw new KeyNotFoundException("Simulation not found.");
+            var simulation = await _simulations.GetForUpdateAsync(simulationId, token) ?? throw new KeyNotFoundException("Simulation not found.");
             simulation.MarkExecuted(result.Id);
             await _outbox.AppendAsync("money.simulation_executions.v1", simulation.Id.ToString(), new { simulation.Id, BatchId = result.Id, result.Status, result.Replayed }, token);
             await _uow.SaveChangesAsync(token);
@@ -159,6 +169,28 @@ public sealed class SimulationService
         }, IsolationLevel.ReadCommitted, ct);
 
         return new ConfirmedSimulationResult(prepared.SimulationId, SimulationStatus.Executed, result);
+    }
+
+    private async Task<(BatchRequest? Batch, ConfirmPrepared? Error)> ValidateConfirmedSimulationAsync(MoneySimulation simulation, ConfirmSimulationRequest request, string actor, CancellationToken token)
+    {
+        if (!ConstantTimeEquals(simulation.ConfirmationTokenHash, HashToken(simulation.Id, request.ConfirmationToken)))
+        {
+            await _simulations.AddConfirmationAuditAsync(new SimulationConfirmationAudit(EntityId.New(), simulation.Id, ConfirmationStatus.Failed, actor, "Invalid confirmation token."), token);
+            await _outbox.AppendAsync("money.simulation_confirmations.v1", simulation.Id.ToString(), new { simulation.Id, Status = "FAILED", Reason = "invalid_token" }, token);
+            await _uow.SaveChangesAsync(token);
+            return (null, ConfirmPrepared.UnauthorizedFailure(simulation.Id, simulation.Status, "Invalid confirmation token."));
+        }
+
+        var batch = JsonSerializer.Deserialize<BatchRequest>(simulation.RequestJson, JsonOptions) ?? throw new InvalidOperationException("Stored simulation request is invalid.");
+        var currentHash = HashJson(JsonSerializer.Serialize(batch, JsonOptions));
+        if (!ConstantTimeEquals(simulation.RequestHash, currentHash))
+        {
+            await _simulations.AddConfirmationAuditAsync(new SimulationConfirmationAudit(EntityId.New(), simulation.Id, ConfirmationStatus.Failed, actor, "Request hash mismatch."), token);
+            await _outbox.AppendAsync("money.simulation_confirmations.v1", simulation.Id.ToString(), new { simulation.Id, Status = "FAILED", Reason = "request_hash_mismatch" }, token);
+            await _uow.SaveChangesAsync(token);
+            return (null, ConfirmPrepared.Failed(simulation.Id, simulation.Status, "Simulation request integrity check failed."));
+        }
+        return (batch, null);
     }
 
     private sealed record ConfirmPrepared(Guid SimulationId, SimulationStatus Status, BatchRequest? Batch, BatchResult? ExistingResult, string? ErrorMessage, bool Unauthorized)
