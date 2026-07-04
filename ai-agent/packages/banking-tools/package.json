@@ -1,0 +1,24 @@
+{
+  "name": "@finance-agent/banking-tools",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@finance-agent/agent-policy": "1.0.0",
+    "@finance-agent/schemas": "1.0.0",
+    "ai": "^6.0.199",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8",
+    "@types/node": "^25.9.2"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "finance-agent-platform",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev:agent": "npm run dev -w @finance-agent/agent-service",
+    "dev:gateway": "npm run dev -w @finance-agent/tool-gateway",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.2",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ]
+}
