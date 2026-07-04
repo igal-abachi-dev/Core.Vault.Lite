@@ -1,6 +1,5 @@
-# VaultCoreLite.CSharp v1.1
-
-C#/.NET port of the Go VaultCore.Lite banking core. This is an OSS-lite, Vault-inspired core banking engine focused on the essential architecture: immutable postings, double-entry accounting, product-contract hooks, schedule-driven product lifecycle events, real-time balance projections, and an outbox event stream.
+# Core.Vault.Lite
+C#/.NET Banking Core Engine focused on the essential architecture: immutable postings, double-entry accounting, product-contract hooks, schedule-driven product lifecycle events, real-time balance projections, and an outbox event stream.
 
 ## Architecture
 
@@ -28,6 +27,21 @@ C#/.NET port of the Go VaultCore.Lite banking core. This is an OSS-lite, Vault-i
 - `CreditCard` — asset-side revolving credit with credit limit, annual fee, and interest accrual.
 
 These are intentionally compact product-contract examples, not jurisdiction-specific regulated product packs.
+
+
+## agentic flow:
+Agent proposes money action
+  ↓
+Core simulates it without committing postings
+  ↓
+Core returns preview + one-time confirmation token
+  ↓
+User explicitly confirms
+  ↓
+Core executes the stored request, not a new model-generated request
+  ↓
+Core writes immutable ledger + confirmation audit + outbox events
+
 
 ## Run locally
 
@@ -99,9 +113,6 @@ dotnet ef database update \
   --startup-project src/VaultCoreLite.Api
 ```
 
-## Important
-
-This is now a strong v1.1 production-oriented foundation, but it is not a certified banking platform. Before real money use, run the local build/test suite, add Testcontainers Postgres tests, perform security review, add RBAC/auth, reconciliation monitoring, backups/restore drills, audit retention, operational runbooks, and regulatory controls.
 
 
 ## v1.2 Agent-safe execution
