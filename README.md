@@ -1,5 +1,6 @@
-# Core.Vault.Lite
-C#/.NET Banking Core Engine focused on the essential architecture: immutable postings, double-entry accounting, product-contract hooks, schedule-driven product lifecycle events, real-time balance projections, and an outbox event stream.
+# VaultCoreLite.CSharp v1.1
+
+C#/.NET port of the Go VaultCore.Lite banking core. This is an OSS-lite, Vault-inspired core banking engine focused on the essential architecture: immutable postings, double-entry accounting, product-contract hooks, schedule-driven product lifecycle events, real-time balance projections, and an outbox event stream.
 
 ## Architecture
 
@@ -98,6 +99,9 @@ dotnet ef database update \
   --startup-project src/VaultCoreLite.Api
 ```
 
+## Important
+
+This is now a strong v1.1 production-oriented foundation, but it is not a certified banking platform. Before real money use, run the local build/test suite, add Testcontainers Postgres tests, perform security review, add RBAC/auth, reconciliation monitoring, backups/restore drills, audit retention, operational runbooks, and regulatory controls.
 
 
 ## v1.2 Agent-safe execution

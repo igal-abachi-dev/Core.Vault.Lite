@@ -1,0 +1,28 @@
+VaultCoreLite C# v1.2 verification log
+======================================
+
+Sandbox result:
+- gofmt equivalent: not applicable.
+- dotnet build/test: NOT RUN here because the sandbox image does not include the .NET SDK.
+
+Command attempted:
+  dotnet --version
+
+Result:
+  bash: dotnet: command not found
+
+Run locally:
+  dotnet restore
+  dotnet build
+  dotnet test
+  docker compose up -d postgres
+  dotnet ef database update --project src/VaultCoreLite.Infrastructure --startup-project src/VaultCoreLite.Api
+  dotnet run --project src/VaultCoreLite.Api
+
+v1.2 focus:
+- simulation-first money actions
+- confirmation-gated execution
+- request-hash integrity check
+- idempotent execution via stored clientBatchId
+- persisted confirmation attempts
+- outbox events for simulation, confirmation, and execution
