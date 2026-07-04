@@ -29,6 +29,16 @@ C#/.NET Banking Core Engine focused on the essential architecture: immutable pos
 These are intentionally compact product-contract examples, not jurisdiction-specific regulated product packs.
 
 
+also good for closed-loop ledger use-cases:
+1. kids / family allowance wallet
+2. prepaid balances
+3. loyalty points
+4. school / club / community treasury
+5. business internal credit ledger
+6. freelancer tax-buckets / envelope budgeting
+7. employer benefits / meal / wellness wallets
+
+
 ## agentic flow:
 Agent proposes money action
   ↓
@@ -42,7 +52,19 @@ Core executes the stored request, not a new model-generated request
   ↓
 Core writes immutable ledger + confirmation audit + outbox events
 
+---
 
+LLM / swarm agent
+  = planning, explanation, routing, conversation
+
+Tool Gateway
+  = policy, auth context, redaction, confirmation boundary
+
+C# Core
+  = deterministic money engine, simulation, execution, audit
+
+Postgres
+  = immutable ledger, idempotency, locking, recovery
 --
 
 User / Chat UI
