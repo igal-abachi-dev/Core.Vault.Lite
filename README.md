@@ -57,6 +57,23 @@ Core.Vault.Lite C# API
   ↓
 Simulation-first confirmed execution + immutable audit
 
+---
+
+use cases:
+Daily money co-pilot	Immediate user value, low regulatory risk,
+
+Smart savings optimizer	Uses simulations + schedules + products,
+
+Debt payoff strategist	High value, mostly deterministic math,
+
+Family/shared finance manager	Great differentiation,
+
+Retirement projection	Useful but needs careful assumptions,
+
+Investing assistant	Powerful, but legally sensitive,
+
+and more ...
+
 ```bash
 finance-agent-platform/
 ├── apps/
